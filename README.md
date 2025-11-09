@@ -96,6 +96,3 @@ git push -u origin main
 - python not found: install Python and check "Add to PATH", or use the `py` launcher.
 - Model errors: ensure correct model name and that API key has required access and billing enabled.
 - PDF blank: confirm wkhtmltopdf path and pass configuration to pdfkit.
-
-## License
-Add a LICENSE file (MIT recommended).
