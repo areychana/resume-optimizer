@@ -1,26 +1,83 @@
+"""
+Home page for the resume optimizer app.
+Provides an overview and links to the three modules.
+"""
+
 import streamlit as st
-from optimizer import optimize_resume
-from ats import score_resume
-from pdf_builder import build_pdf
+from utils.session import list_sessions
 
-st.title("🚀 AI Resume Optimizer + ATS Scanner")
+st.set_page_config(
+    page_title="Resume Optimizer",
+    page_icon="💼",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-resume = st.text_area("Paste your Resume (Markdown)", height=200)
-job = st.text_area("Paste Job Description", height=200)
+# ── Sidebar ────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## Resume Optimizer")
+    st.markdown("---")
+    st.page_link("app.py", label="Home", icon="🏠")
+    st.page_link("pages/1_optimizer.py", label="Resume Optimizer", icon="✏️")
+    st.page_link("pages/2_ats.py", label="ATS Scorer", icon="🎯")
+    st.page_link("pages/3_interview.py", label="Interview Prep", icon="🧠")
+    st.markdown("---")
 
-if st.button("Optimize & Score"):
-    with st.spinner("Optimizing..."):
-        new_resume = optimize_resume(resume, job)
-        report = score_resume(new_resume, job)
-        pdf = build_pdf(new_resume)
+    st.markdown("#### Recent Sessions")
+    sessions = list_sessions(limit=5)
+    if sessions:
+        for s in sessions:
+            label = f"{s['module'].title()} on {s['timestamp'][:10]}"
+            snippet = s.get("jd_snippet", "")
+            if snippet:
+                label += f"\n_{snippet[:40]}..._"
+            st.caption(label)
+    else:
+        st.caption("No sessions yet.")
 
-    st.subheader("✅ Optimized Resume")
-    st.code(new_resume, language="markdown")
+# ── Hero ───────────────────────────────────────────────────────────────────
+st.title("Resume Optimizer")
+st.subheader("AI-powered resume optimization, ATS scoring, and interview prep.")
+st.markdown("---")
 
-    st.subheader("🎯 ATS Score")
-    st.write(f"Match Score: **{report['score']}%**")
-    st.write("Matched Keywords:", report["matched_keywords"])
-    st.write("Missing Keywords:", report["missing_keywords"])
+col1, col2, col3 = st.columns(3)
 
-    with open(pdf, "rb") as f:
-        st.download_button("Download PDF", f, pdf)
+with col1:
+    st.markdown("### ✏️ Resume Optimizer")
+    st.markdown(
+        "Paste your resume and a job description. "
+        "Claude rewrites your resume to be ATS-optimized and role-targeted, "
+        "then shows you exactly what changed and why."
+    )
+    st.page_link("pages/1_optimizer.py", label="Open Optimizer →")
+
+with col2:
+    st.markdown("### 🎯 ATS Scorer")
+    st.markdown(
+        "Get a multi-dimensional score across keyword match, skills coverage, "
+        "experience level, and role alignment. See matched and missing keywords "
+        "by category with actionable suggestions."
+    )
+    st.page_link("pages/2_ats.py", label="Open ATS Scorer →")
+
+with col3:
+    st.markdown("### 🧠 Interview Prep")
+    st.markdown(
+        "Generate 10 role-specific interview questions with STAR templates "
+        "for behavioral rounds and key talking points for technical rounds. "
+        "Includes a salary negotiation script for India/remote roles."
+    )
+    st.page_link("pages/3_interview.py", label="Open Interview Prep →")
+
+st.markdown("---")
+
+st.markdown(
+    """
+    **How to use:**
+    1. Start with **Resume Optimizer**: paste your resume and the JD to get an ATS-ready rewrite.
+    2. Run **ATS Scorer** on the optimized resume to validate keyword coverage.
+    3. Use **Interview Prep** to get ready for the call.
+
+    **Powered by** [Claude (Anthropic)](https://anthropic.com) · Built with [Streamlit](https://streamlit.io)
+    """
+)

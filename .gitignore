@@ -2,14 +2,26 @@
 .venv/
 venv/
 env/
+
+# environment variables
+.env
+.streamlit/secrets.toml
+
 # python cache
 __pycache__/
 *.pyc
-# environment variables
-.env
+*.pyo
+
+# session history (auto-generated at runtime)
+versions/*.json
+
+# generated PDF artifacts
+*.pdf
+
 # editor files
 .vscode/
 .idea/
+
 # OS files
 Thumbs.db
 .DS_Store
