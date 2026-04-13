@@ -136,7 +136,7 @@ resume-optimizer/
 
 - **AI:** [Anthropic Claude API](https://anthropic.com) (`claude-sonnet-4-5`), with streaming and structured JSON output
 - **UI:** [Streamlit](https://streamlit.io) multipage app with session state and streaming display
-- **PDF:** [xhtml2pdf](https://github.com/xhtml2pdf/xhtml2pdf), pure Python with no binary dependencies
+- **PDF:** [fpdf2](https://github.com/py-pdf/fpdf2), pure Python with no binary dependencies
 - **Storage:** JSON files (no database)
 - **Config:** python-dotenv + Streamlit secrets
 
