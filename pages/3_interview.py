@@ -24,6 +24,20 @@ with st.sidebar:
     st.page_link("pages/2_ats.py", label="ATS Scorer", icon="🎯")
     st.page_link("pages/3_interview.py", label="Interview Prep", icon="🧠")
     st.markdown("---")
+    st.markdown("#### Your API Key")
+    api_key_input = st.text_input(
+        "Anthropic API Key",
+        type="password",
+        placeholder="sk-ant-...",
+        value=st.session_state.get("api_key", ""),
+        help="Your key is only stored in this browser session and never saved anywhere.",
+    )
+    if api_key_input:
+        st.session_state["api_key"] = api_key_input
+        st.caption("Key saved for this session.")
+    else:
+        st.caption("Get your key at [console.anthropic.com](https://console.anthropic.com)")
+    st.markdown("---")
     st.markdown(
         "**Tip:** Use your *optimized* resume for more targeted "
         "questions. Run the Optimizer first."

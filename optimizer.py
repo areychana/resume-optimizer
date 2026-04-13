@@ -15,17 +15,20 @@ MODEL = "claude-sonnet-4-5"
 
 
 def _get_client() -> anthropic.Anthropic:
-    """Instantiate the Anthropic client from env or Streamlit secrets."""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        try:
-            import streamlit as st
-            api_key = st.secrets.get("ANTHROPIC_API_KEY")
-        except Exception:
-            pass
+    """Instantiate the Anthropic client.
+
+    Priority: user-provided key in session_state > .env > Streamlit secrets.
+    """
+    api_key = None
+    try:
+        import streamlit as st
+        api_key = st.session_state.get("api_key") or st.secrets.get("ANTHROPIC_API_KEY")
+    except Exception:
+        pass
+    api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise ValueError(
-            "ANTHROPIC_API_KEY not found. Set it in .env or Streamlit secrets."
+            "No API key found. Enter your Anthropic API key in the sidebar."
         )
     return anthropic.Anthropic(api_key=api_key)
 
