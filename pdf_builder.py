@@ -1,92 +1,27 @@
 """
 PDF generation module. Converts Markdown resume text to a styled PDF
-using xhtml2pdf. Pure Python, no system dependencies, works on Windows.
+using fpdf2. Pure Python, zero system dependencies, works everywhere.
 """
 
 import os
+import re
 import tempfile
-import markdown as md_lib
 
 
-# Embedded CSS for the PDF: clean, ATS-safe, single-column layout
-_PDF_CSS = """
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 11pt;
-    line-height: 1.5;
-    color: #1a1a1a;
-    padding: 36pt 48pt;
-}
-
-h1 {
-    font-size: 20pt;
-    font-weight: bold;
-    color: #111827;
-    margin-bottom: 4pt;
-    border-bottom: 1pt solid #4F46E5;
-    padding-bottom: 4pt;
-}
-
-h2 {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #4F46E5;
-    margin-top: 14pt;
-    margin-bottom: 4pt;
-    text-transform: uppercase;
-}
-
-h3 {
-    font-size: 11pt;
-    font-weight: bold;
-    color: #111827;
-    margin-top: 8pt;
-    margin-bottom: 2pt;
-}
-
-p {
-    margin-bottom: 5pt;
-    color: #374151;
-}
-
-ul {
-    margin-left: 14pt;
-    margin-bottom: 5pt;
-}
-
-li {
-    margin-bottom: 2pt;
-    color: #374151;
-}
-
-strong {
-    font-weight: bold;
-    color: #111827;
-}
-
-a {
-    color: #4F46E5;
-}
-
-hr {
-    border-top: 1pt solid #e5e7eb;
-    margin: 8pt 0;
-}
-
-code {
-    font-family: Courier, monospace;
-    font-size: 9.5pt;
-    background: #f3f4f6;
-    padding: 1pt 3pt;
-}
-"""
+def _strip_inline(text: str) -> str:
+    """Remove bold/italic markdown markers from a line of text."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.+?)\*", r"\1", text)
+    text = re.sub(r"`(.+?)`", r"\1", text)
+    return text.strip()
 
 
 def build_pdf(md_text: str, output_path: str | None = None) -> str:
     """
-    Convert a Markdown resume to a styled PDF file using xhtml2pdf.
+    Convert a Markdown resume to a styled PDF file using fpdf2.
+
+    Handles headings (h1/h2/h3), bullet points, horizontal rules,
+    and paragraphs. Inline bold/italic markers are stripped cleanly.
 
     Args:
         md_text: Resume content in Markdown format.
@@ -97,36 +32,107 @@ def build_pdf(md_text: str, output_path: str | None = None) -> str:
         Absolute path to the generated PDF file.
 
     Raises:
-        ImportError: If xhtml2pdf is not installed.
-        RuntimeError: If xhtml2pdf reports a conversion error.
+        ImportError: If fpdf2 is not installed.
     """
     try:
-        from xhtml2pdf import pisa
+        from fpdf import FPDF
     except ImportError as e:
         raise ImportError(
-            "xhtml2pdf is required for PDF generation. "
-            "Install it with: pip install xhtml2pdf"
+            "fpdf2 is required for PDF generation. "
+            "Install it with: pip install fpdf2"
         ) from e
 
-    body_html = md_lib.markdown(md_text, extensions=["extra", "nl2br"])
-    full_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <style>{_PDF_CSS}</style>
-</head>
-<body>
-{body_html}
-</body>
-</html>"""
+    pdf = FPDF(format="A4")
+    pdf.set_margins(18, 18, 18)
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=18)
+
+    page_w = pdf.w - pdf.l_margin - pdf.r_margin
+
+    lines = md_text.splitlines()
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        i += 1
+
+        # Skip fenced code blocks
+        if raw.strip().startswith("```"):
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                i += 1
+            i += 1
+            continue
+
+        # H1
+        if raw.startswith("# "):
+            text = _strip_inline(raw[2:])
+            pdf.set_font("Helvetica", "B", 18)
+            pdf.set_text_color(17, 24, 39)
+            pdf.multi_cell(page_w, 8, text)
+            # Underline via line
+            pdf.set_draw_color(79, 70, 229)
+            pdf.set_line_width(0.5)
+            pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + page_w, pdf.get_y())
+            pdf.ln(3)
+            continue
+
+        # H2
+        if raw.startswith("## "):
+            text = _strip_inline(raw[3:]).upper()
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_text_color(79, 70, 229)
+            pdf.ln(3)
+            pdf.multi_cell(page_w, 6, text)
+            pdf.set_draw_color(229, 231, 235)
+            pdf.set_line_width(0.3)
+            pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + page_w, pdf.get_y())
+            pdf.ln(2)
+            continue
+
+        # H3
+        if raw.startswith("### "):
+            text = _strip_inline(raw[4:])
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(17, 24, 39)
+            pdf.ln(2)
+            pdf.multi_cell(page_w, 5, text)
+            continue
+
+        # Horizontal rule
+        if raw.strip() in ("---", "***", "___"):
+            pdf.set_draw_color(229, 231, 235)
+            pdf.set_line_width(0.3)
+            pdf.line(pdf.l_margin, pdf.get_y() + 1, pdf.l_margin + page_w, pdf.get_y() + 1)
+            pdf.ln(3)
+            continue
+
+        # Bullet point
+        if raw.strip().startswith(("- ", "* ", "+ ")):
+            text = _strip_inline(raw.strip()[2:])
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(55, 65, 81)
+            x = pdf.get_x()
+            y = pdf.get_y()
+            # bullet dot
+            pdf.set_xy(pdf.l_margin + 2, y)
+            pdf.cell(4, 5, chr(149))
+            pdf.set_xy(pdf.l_margin + 7, y)
+            pdf.multi_cell(page_w - 7, 5, text)
+            continue
+
+        # Blank line
+        if not raw.strip():
+            pdf.ln(2)
+            continue
+
+        # Regular paragraph
+        text = _strip_inline(raw)
+        if text:
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(55, 65, 81)
+            pdf.multi_cell(page_w, 5, text)
 
     if output_path is None:
         output_path = tempfile.mktemp(suffix=".pdf", prefix="resume_")
 
-    with open(output_path, "wb") as f:
-        result = pisa.CreatePDF(full_html.encode("utf-8"), dest=f, encoding="utf-8")
-
-    if result.err:
-        raise RuntimeError(f"PDF conversion failed with {result.err} error(s).")
-
+    pdf.output(output_path)
     return os.path.abspath(output_path)

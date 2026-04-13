@@ -139,8 +139,8 @@ if run:
                 )
         except ImportError:
             st.warning(
-                "xhtml2pdf is not installed so PDF export is unavailable. "
-                "Run `pip install xhtml2pdf` to enable it."
+                "fpdf2 is not installed so PDF export is unavailable. "
+                "Run `pip install fpdf2` to enable it."
             )
         except Exception as e:
             st.warning(f"PDF generation failed: {e}")
