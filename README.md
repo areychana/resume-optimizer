@@ -5,7 +5,7 @@
 ![Claude](https://img.shields.io/badge/AI-Claude%20Sonnet-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-An AI-powered career operations suite built on [Anthropic's Claude API](https://anthropic.com).
+An AI-powered resume optimizer built on [Anthropic's Claude API](https://anthropic.com).
 Optimize your resume for ATS, score keyword coverage across dimensions, and walk into interviews prepared.
 
 ---
@@ -35,7 +35,7 @@ Optimize your resume for ATS, score keyword coverage across dimensions, and walk
 │                │                                             │
 │         Anthropic Claude API  (claude-sonnet-4-5)            │
 │                                                              │
-│  pdf_builder.py ──► WeasyPrint (cross-platform, no binaries) │
+│  pdf_builder.py ──► fpdf2 (cross-platform, no binaries)      │
 │  utils/session.py ──► versions/*.json  (session history)     │
 │  utils/cost.py    ──► token usage + cost display             │
 └──────────────────────────────────────────────────────────────┘
@@ -113,7 +113,7 @@ resume-optimizer/
 ├── optimizer.py                  # Resume rewrite logic (Claude streaming)
 ├── ats.py                        # ATS scoring (Claude structured JSON)
 ├── interview.py                  # Interview prep + salary script
-├── pdf_builder.py                # Markdown → PDF via WeasyPrint
+├── pdf_builder.py                # Markdown → PDF via fpdf2
 ├── prompt.py                     # All Claude prompts as named constants
 ├── pages/
 │   ├── 1_optimizer.py            # Optimizer page
