@@ -10,11 +10,14 @@ import re
 import anthropic
 from dotenv import load_dotenv
 from prompt import ATS_ANALYSIS_PROMPT
+from models import ATSReport
 from utils.cost import calculate_cost
+from utils.logger import get_logger, log_call, log_usage
 
 load_dotenv()
 
 MODEL = "claude-sonnet-4-5"
+logger = get_logger("ats")
 
 # Common English stopwords to filter from naive keyword extraction fallback
 _STOPWORDS = {
@@ -122,24 +125,27 @@ def score_resume(resume: str, job_description: str) -> tuple[dict, dict]:
         job_description=job_description,
     )
     try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        with log_call(logger, "score_resume"):
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=2048,
+                messages=[{"role": "user", "content": prompt}],
+            )
         raw = response.content[0].text.strip()
         # Strip accidental markdown code fences if Claude adds them
         if raw.startswith("```"):
             raw = re.sub(r"^```[a-z]*\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw)
-        report = json.loads(raw)
         usage = calculate_cost(
             MODEL,
             response.usage.input_tokens,
             response.usage.output_tokens,
         )
+        log_usage(logger, "score_resume", usage)
+        report = ATSReport(**json.loads(raw)).to_dict()
         return report, usage
-    except (json.JSONDecodeError, anthropic.APIError, Exception):
+    except (json.JSONDecodeError, anthropic.APIError, Exception) as exc:
+        logger.warning(f"score_resume: falling back to keyword scoring ({exc})")
         report = _fallback_score(resume, job_description)
         usage = calculate_cost(MODEL, 0, 0)
         return report, usage
