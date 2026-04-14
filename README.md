@@ -20,14 +20,14 @@ Optimize your resume for ATS, score keyword coverage across dimensions, and walk
 
 ### What makes it production-ready
 
-- **PDF upload** — upload your resume as a PDF instead of pasting text (pdfplumber, multi-column aware)
-- **STAR rewriter** — scans for weak passive bullets ("responsible for", "worked on") and rewrites them in STAR format
-- **Hallucination check** — flags any skills or tools Claude added that were not in your original resume or the JD
-- **Pydantic validation** — all structured Claude responses are validated before hitting the UI
-- **Structured logging** — every API call is logged with duration, token usage, and cost to `logs/optimizer.log`
-- **Input limits** — resume capped at 5,000 chars, JD at 3,000 chars to prevent abuse
-- **Bring your own API key** — paste your Anthropic key in the sidebar, never stored anywhere
-- **Graceful error handling** — overloaded API, bad JSON, and parse failures all show clean messages
+- **PDF upload**: upload your resume as a PDF instead of pasting text (pdfplumber, multi-column aware)
+- **STAR rewriter**: scans for weak passive bullets ("responsible for", "worked on") and rewrites them in STAR format
+- **Hallucination check**: flags any skills or tools Claude added that were not in your original resume or the JD
+- **Pydantic validation**: all structured Claude responses are validated before hitting the UI
+- **Structured logging**: every API call is logged with duration, token usage, and cost to `logs/optimizer.log`
+- **Input limits**: resume capped at 5,000 chars, JD at 3,000 chars to prevent abuse
+- **Bring your own API key**: paste your Anthropic key in the sidebar, never stored anywhere
+- **Graceful error handling**: overloaded API, bad JSON, and parse failures all show clean messages
 
 ---
 
