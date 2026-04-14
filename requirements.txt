@@ -1,4 +1,4 @@
-# Career Ops Suite — dependencies
+# Resume Optimizer — dependencies
 # Pinned for reproducibility; compatible with Streamlit Cloud free tier.
 # No system binaries required.
 
@@ -14,5 +14,11 @@ markdown>=3.6,<4.0
 # PDF generation (pure Python, no system dependencies)
 fpdf2>=2.7.9,<3.0.0
 
+# PDF text extraction
+pdfplumber>=0.11.0,<1.0.0
+
 # Environment variable loading
 python-dotenv>=1.0.0,<2.0.0
+
+# Response validation
+pydantic>=2.0.0,<3.0.0
