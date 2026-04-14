@@ -6,6 +6,7 @@ templates) and a salary negotiation script via Claude.
 
 import streamlit as st
 from interview import generate_interview_questions, generate_salary_script
+from utils.sanitize import sanitize, extract_pdf_text
 from utils.session import save_session
 
 st.set_page_config(
@@ -51,16 +52,35 @@ st.caption(
 )
 st.markdown("---")
 
+MAX_RESUME_CHARS = 5_000
+MAX_JD_CHARS = 3_000
+
 default_resume = st.session_state.get("optimized_resume", "")
 default_jd = st.session_state.get("jd", "")
 
 col_left, col_right = st.columns(2)
 with col_left:
+    st.markdown("**Your Resume**")
+    resume_file = st.file_uploader(
+        "Upload PDF (optional, max 10 MB)",
+        type=["pdf"],
+        key="interview_resume_pdf",
+        help="Upload a PDF or paste text below.",
+    )
+    if resume_file is not None:
+        try:
+            st.session_state["interview_resume_input"] = extract_pdf_text(resume_file.read())
+            st.success("PDF parsed successfully.")
+        except Exception as e:
+            st.error(f"Could not read PDF: {e}")
+    if "interview_resume_input" not in st.session_state and default_resume:
+        st.session_state["interview_resume_input"] = default_resume
     resume_input = st.text_area(
-        "Resume (Markdown or plain text)",
-        value=default_resume,
-        height=300,
+        "Or paste Markdown / plain text",
+        height=230,
         placeholder="Paste your resume here (optimized preferred)...",
+        max_chars=MAX_RESUME_CHARS,
+        key="interview_resume_input",
     )
 with col_right:
     jd_input = st.text_area(
@@ -68,6 +88,7 @@ with col_right:
         value=default_jd,
         height=300,
         placeholder="Paste the full job description here...",
+        max_chars=MAX_JD_CHARS,
     )
 
 col_q, col_s = st.columns(2)
@@ -80,26 +101,29 @@ run_salary = col_s.button(
 
 # ── Interview questions ────────────────────────────────────────────────────
 if run_questions:
-    if not resume_input.strip():
-        st.error("Please paste your resume.")
+    resume_text = sanitize(resume_input.strip())
+    jd_text = sanitize(jd_input.strip())
+
+    if not resume_text:
+        st.error("Please provide your resume (upload PDF or paste text).")
         st.stop()
-    if not jd_input.strip():
+    if not jd_text:
         st.error("Please paste the job description.")
         st.stop()
 
     st.markdown("---")
-    st.subheader("🧠 Interview Questions")
+    st.subheader("Interview Questions")
     placeholder = st.empty()
     full_text = ""
 
     with st.spinner("Claude is generating your interview questions..."):
         try:
-            for chunk in generate_interview_questions(resume_input, jd_input):
+            for chunk in generate_interview_questions(resume_text, jd_text):
                 full_text += chunk
                 placeholder.markdown(full_text + "▌")
             placeholder.markdown(full_text)
             usage = getattr(generate_interview_questions, "_last_usage", {})
-        except ValueError as e:
+        except (ValueError, RuntimeError) as e:
             st.error(str(e))
             st.stop()
 
@@ -110,23 +134,24 @@ if run_questions:
 
     save_session({
         "module": "interview",
-        "jd_snippet": jd_input[:200],
-        "resume_snippet": resume_input[:200],
+        "jd_snippet": jd_text[:200],
+        "resume_snippet": resume_text[:200],
         "interview_prep": full_text,
         "usage": usage,
     })
 
 # ── Salary negotiation ─────────────────────────────────────────────────────
 if run_salary:
-    if not jd_input.strip():
+    jd_text_salary = sanitize(jd_input.strip())
+    if not jd_text_salary:
         st.error("Please paste the job description.")
         st.stop()
 
     st.markdown("---")
-    st.subheader("💰 Salary Negotiation Script")
+    st.subheader("Salary Negotiation Script")
 
     # Use first 500 chars of resume as profile summary if provided
-    resume_summary = resume_input[:500] if resume_input.strip() else (
+    resume_summary = sanitize(resume_input)[:500] if resume_input.strip() else (
         "Candidate profile not provided, so the analysis will be based on the role only."
     )
 
@@ -135,12 +160,12 @@ if run_salary:
 
     with st.spinner("Claude is crafting your negotiation script..."):
         try:
-            for chunk in generate_salary_script(jd_input, resume_summary):
+            for chunk in generate_salary_script(jd_text_salary, resume_summary):
                 full_text += chunk
                 placeholder.markdown(full_text + "▌")
             placeholder.markdown(full_text)
             usage = getattr(generate_salary_script, "_last_usage", {})
-        except ValueError as e:
+        except (ValueError, RuntimeError) as e:
             st.error(str(e))
             st.stop()
 
@@ -151,7 +176,7 @@ if run_salary:
 
     save_session({
         "module": "salary",
-        "jd_snippet": jd_input[:200],
+        "jd_snippet": jd_text_salary[:200],
         "salary_script": full_text,
         "usage": usage,
     })

@@ -7,6 +7,7 @@ and actionable improvement suggestions.
 
 import streamlit as st
 from ats import score_resume
+from utils.sanitize import sanitize, extract_pdf_text
 from utils.session import save_session
 
 st.set_page_config(
@@ -49,17 +50,36 @@ st.title("🎯 ATS Scorer")
 st.caption("Multi-dimensional analysis of how well your resume matches the job description.")
 st.markdown("---")
 
+MAX_RESUME_CHARS = 5_000
+MAX_JD_CHARS = 3_000
+
 # Pre-fill from session state if coming from the optimizer
 default_resume = st.session_state.get("optimized_resume", "")
 default_jd = st.session_state.get("jd", "")
 
 col_left, col_right = st.columns(2)
 with col_left:
+    st.markdown("**Your Resume**")
+    resume_file = st.file_uploader(
+        "Upload PDF (optional, max 10 MB)",
+        type=["pdf"],
+        key="ats_resume_pdf",
+        help="Upload a PDF or paste text below.",
+    )
+    if resume_file is not None:
+        try:
+            st.session_state["ats_resume_input"] = extract_pdf_text(resume_file.read())
+            st.success("PDF parsed successfully.")
+        except Exception as e:
+            st.error(f"Could not read PDF: {e}")
+    if "ats_resume_input" not in st.session_state and default_resume:
+        st.session_state["ats_resume_input"] = default_resume
     resume_input = st.text_area(
-        "Resume (Markdown or plain text)",
-        value=default_resume,
-        height=340,
+        "Or paste Markdown / plain text",
+        height=280,
         placeholder="Paste your resume here (or run the Optimizer first)...",
+        max_chars=MAX_RESUME_CHARS,
+        key="ats_resume_input",
     )
 with col_right:
     jd_input = st.text_area(
@@ -67,15 +87,19 @@ with col_right:
         value=default_jd,
         height=340,
         placeholder="Paste the full job description here...",
+        max_chars=MAX_JD_CHARS,
     )
 
-run = st.button("🎯 Run ATS Analysis", type="primary", use_container_width=True)
+run = st.button("Run ATS Analysis", type="primary", use_container_width=True)
 
 if run:
-    if not resume_input.strip():
-        st.error("Please paste your resume.")
+    resume_text = sanitize(resume_input.strip())
+    jd_text = sanitize(jd_input.strip())
+
+    if not resume_text:
+        st.error("Please provide your resume (upload PDF or paste text).")
         st.stop()
-    if not jd_input.strip():
+    if not jd_text:
         st.error("Please paste the job description.")
         st.stop()
 
@@ -83,7 +107,7 @@ if run:
 
     with st.spinner("Claude is analyzing your resume against the JD..."):
         try:
-            report, usage = score_resume(resume_input, jd_input)
+            report, usage = score_resume(resume_text, jd_text)
         except ValueError as e:
             st.error(str(e))
             st.stop()
@@ -164,8 +188,8 @@ if run:
     # ── Save session ───────────────────────────────────────────────────────
     save_session({
         "module": "ats",
-        "jd_snippet": jd_input[:200],
-        "resume_snippet": resume_input[:200],
+        "jd_snippet": jd_text[:200],
+        "resume_snippet": resume_text[:200],
         "ats_report": report,
         "usage": usage,
     })
