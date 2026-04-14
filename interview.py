@@ -56,19 +56,26 @@ def generate_interview_questions(resume: str, job_description: str):
         resume=resume,
         job_description=job_description,
     )
-    with client.messages.stream(
-        model=MODEL,
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
-        final_msg = stream.get_final_message()
-        generate_interview_questions._last_usage = calculate_cost(
-            MODEL,
-            final_msg.usage.input_tokens,
-            final_msg.usage.output_tokens,
-        )
+    try:
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}],
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+            final_msg = stream.get_final_message()
+            generate_interview_questions._last_usage = calculate_cost(
+                MODEL,
+                final_msg.usage.input_tokens,
+                final_msg.usage.output_tokens,
+            )
+    except anthropic.APIStatusError as e:
+        if e.status_code == 529 or "overloaded" in str(e).lower():
+            raise RuntimeError(
+                "Claude is currently overloaded. Wait a few seconds and try again."
+            ) from e
+        raise RuntimeError(f"API error: {e.message}") from e
 
 
 def generate_salary_script(job_description: str, resume_summary: str):
@@ -94,16 +101,23 @@ def generate_salary_script(job_description: str, resume_summary: str):
         job_description=job_description,
         resume_summary=resume_summary,
     )
-    with client.messages.stream(
-        model=MODEL,
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
-        final_msg = stream.get_final_message()
-        generate_salary_script._last_usage = calculate_cost(
-            MODEL,
-            final_msg.usage.input_tokens,
-            final_msg.usage.output_tokens,
-        )
+    try:
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}],
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+            final_msg = stream.get_final_message()
+            generate_salary_script._last_usage = calculate_cost(
+                MODEL,
+                final_msg.usage.input_tokens,
+                final_msg.usage.output_tokens,
+            )
+    except anthropic.APIStatusError as e:
+        if e.status_code == 529 or "overloaded" in str(e).lower():
+            raise RuntimeError(
+                "Claude is currently overloaded. Wait a few seconds and try again."
+            ) from e
+        raise RuntimeError(f"API error: {e.message}") from e
