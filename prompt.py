@@ -138,6 +138,46 @@ JOB DESCRIPTION:
 {job_description}
 """
 
+STAR_REWRITE_PROMPT = """\
+You are an expert resume coach. Below is a list of weak resume bullet points that use passive or vague language.
+
+Rewrite each bullet into the STAR format (Situation, Task, Action, Result) using strong action verbs.
+Keep each rewritten bullet to 1-2 lines. Use [METRIC] as a placeholder where a number would strengthen the point.
+Return ONLY a JSON array in this exact format (no code fences):
+
+[
+  {{"original": "original bullet text", "rewritten": "rewritten STAR bullet"}},
+  ...
+]
+
+WEAK BULLETS:
+{bullets}
+"""
+
+HALLUCINATION_CHECK_PROMPT = """\
+You are a resume auditor checking for fabricated content.
+
+Compare the OPTIMIZED RESUME against the ORIGINAL RESUME and the JOB DESCRIPTION.
+Identify any skills, tools, technologies, or qualifications that appear in the optimized resume
+but were NOT present in either the original resume or the job description.
+
+Return ONLY a JSON array of flagged items (no code fences). If nothing is flagged, return an empty array [].
+
+Each item should follow this format:
+[
+  {{"term": "the flagged term", "reason": "brief explanation of why it looks fabricated"}}
+]
+
+ORIGINAL RESUME:
+{original}
+
+JOB DESCRIPTION:
+{job_description}
+
+OPTIMIZED RESUME:
+{optimized}
+"""
+
 SALARY_NEGOTIATION_PROMPT = """\
 You are a compensation expert and career coach specializing in the Indian tech job market and remote roles.
 
